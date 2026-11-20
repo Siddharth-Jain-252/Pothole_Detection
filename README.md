@@ -10,6 +10,7 @@ This project aims to automate pothole identification through deep learning and p
 
 Users can submit road images for AI-based pothole detection. The backend processes the image using a trained YOLOv8 model and returns detection results, including bounding boxes and confidence scores. Detected potholes can subsequently be associated with geographic coordinates and stored for mapping and reporting.
 
+Deployed Link: https://pothole-detection-vert.vercel.app/
 ## Key Features
 
 - **AI-based Pothole Detection:** Uses a custom-trained YOLOv8 object detection model.
