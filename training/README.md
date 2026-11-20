@@ -1,199 +1,347 @@
-# PotholeGuard-AI
+# Model Training & Evaluation
 
-PotholeGuard-AI is a pothole detection project built with computer vision and deep learning. The repository includes a fine-tuned YOLOv8 model for stronger real-world inference, a custom YOLOv3-Tiny pipeline for learning and comparison, a Streamlit web app, evaluation artifacts, trained weights, and sample detections.
+This document describes the machine learning workflow for the Pothole Detection project, including dataset organization, YOLOv8 training, validation, evaluation, and model deployment.
 
-## Overview
+The project uses Ultralytics YOLOv8 for pothole object detection.
 
-This project focuses on pothole detection without retraining at deployment time. The latest YOLOv8 inference flow uses post-processing cleanup to reduce duplicate boxes, suppress weak detections, and keep the output cleaner for demos and deployment.
+## 1. Training Overview
 
-Core capabilities:
-
-- YOLOv8 pothole detection with optimized no-retrain inference settings
-- Custom YOLOv3-Tiny training and inference pipeline
-- Streamlit web application for interactive testing
-- Validation plots, confusion matrix, and saved sample detections
-- Grad-CAM support for explainability on the YOLOv3 path
-
-## Models in the Repository
-
-### YOLOv8
-
-- Base model: `yolov8n.pt`
-- Fine-tuned weights: `yolov8_pothole_best.pt`
-- Training script: `train_yolov8.py`
-- Optimized inference script: `inference_yolov8.py`
-
-The latest no-retrain YOLOv8 deployment settings used in this project are:
-
-- `conf = 0.44`
-- `post-filter confidence >= 0.45`
-- `iou = 0.55`
-- `agnostic_nms = True`
-- `max_det (raw) = 8`
-- `max displayed detections = 5`
-- `min box area = 800`
-- `aspect ratio range = 0.3 to 3.0`
-- `augment = True`
-
-### YOLOv3-Tiny
-
-- Model definition: `model.py`
-- Training script: `train.py`
-- Inference pipeline: `inference.py`
-- Evaluation pipeline: `evaluate.py`
-- Explainability: `gradcam.py`
-
-## Latest YOLOv8 Validation Metrics
-
-These values were generated from the saved model `yolov8_pothole_best.pt` and written to `evaluation_metrics/metrics_summary.txt`.
-
-| Metric | Value |
-| --- | ---: |
-| Precision | 0.730839 |
-| Recall | 0.699805 |
-| mAP50 | 0.732630 |
-| mAP50-95 | 0.357677 |
-
-Validation artifacts are saved in [`evaluation_metrics/`](evaluation_metrics), including:
-
-- `BoxF1_curve.png`
-- `BoxPR_curve.png`
-- `BoxP_curve.png`
-- `BoxR_curve.png`
-- `confusion_matrix.png`
-- `confusion_matrix_normalized.png`
-- `metrics_summary.txt`
-- `metrics_summary.json`
-
-## Saved Cleaned Detection Images
-
-These three images were generated with the cleaned YOLOv8 inference flow and are included in the repository.
-
-### sample_detection_1.jpg
-
-![Sample detection 1](evaluation_metrics/sample_detection_1.jpg)
-
-### sample_detection_2.jpg
-
-![Sample detection 2](evaluation_metrics/sample_detection_2.jpg)
-
-### sample_detection_3.jpg
-
-![Sample detection 3](evaluation_metrics/sample_detection_3.jpg)
-
-## Project Structure
+The training pipeline consists of the following stages:
 
 ```text
-PotholeGuard-AI/
-|-- app.py
-|-- config.py
-|-- dataset.py
-|-- evaluate.py
-|-- gradcam.py
-|-- inference.py
-|-- inference_yolov8.py
-|-- model.py
-|-- train.py
-|-- train_yolov8.py
-|-- utils.py
-|-- requirements.txt
-|-- pothole_dataset.yaml
-|-- yolov8_pothole_best.pt
-|-- yolo_rdd_1.pth
-|-- yolo_rdd_3.pth
-|-- dataset_yolo/
-|-- dataset-pothole-main/
-|-- evaluation_metrics/
-|-- results/
-`-- runs/
+        Dataset Collection
+                |
+                v
+        Dataset Preparation
+                |
+                v
+       Annotation Validation
+                |
+                v
+        Train / Val / Test Split
+                |
+                v
+          YOLOv8 Training
+                |
+                v
+        Model Validation
+                |
+                v
+         Performance Analysis
+                |
+                v
+       Best Model Checkpoint
+                |
+                v
+        Backend Integration
 ```
 
-## Installation
+The objective is to train a model that can identify potholes in road images and localize them using bounding boxes.
 
-### 1. Clone the repository
+## 2. Technology Requirements
+
+| Component | Technology |
+|---|---|
+| Programming Language | Python 3.11 |
+| Deep Learning Framework | PyTorch |
+| Object Detection | Ultralytics YOLOv8 |
+| Image Processing | OpenCV |
+| Numerical Processing | NumPy |
+| Visualization | Matplotlib |
+| Training Hardware | NVIDIA GPU recommended |
+| Dataset Format | YOLO detection format |
+
+## 3. Dataset Organization
+
+The project contains the following dataset directories:
+
+- `dataset_yolo/`
+- `dataset-pothole-main/`
+
+Before training, identify which dataset is referenced by `pothole_dataset.yaml` and which dataset was used for the existing trained checkpoint.
+
+A standard YOLO detection dataset follows this structure:
+
+```text
+dataset/
+│
+├── images/
+│   ├── train/
+│   ├── val/
+│   └── test/
+│
+├── labels/
+│   ├── train/
+│   ├── val/
+│   └── test/
+│
+└── data.yaml
+```
+
+Each image should have a corresponding annotation file containing its object labels and bounding-box coordinates.
+
+### YOLO Annotation Format
+
+Each annotation line follows:
+
+```text
+class_id x_center y_center width height
+```
+
+The bounding-box coordinates are normalized between 0 and 1 relative to image dimensions.
+
+For example:
+
+```text
+0 0.512 0.438 0.215 0.172
+```
+
+The class ID must correspond to the class mapping defined in the dataset configuration.
+
+## 4. Dataset Configuration
+
+The dataset configuration is maintained in:
+
+```text
+pothole_dataset.yaml
+```
+
+A typical YOLO dataset configuration looks like:
+
+```yaml
+path: ./dataset_yolo
+
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: pothole
+```
+
+Important: This is an example configuration. Keep the paths and class names consistent with your actual dataset. Do not change the class mapping when using an existing trained checkpoint.
+
+## 5. Environment Setup
+
+Create and activate a Python virtual environment.
+
+Windows:
+
+```powershell
+py -3.11 -m venv .venv
+
+.venv\Scripts\activate
+```
+
+Linux / macOS:
 
 ```bash
-git clone https://github.com/Yug-doshi/PotholeGuard-AI.git
-cd PotholeGuard-AI
+python3.11 -m venv .venv
+
+source .venv/bin/activate
 ```
 
-### 2. Install dependencies
+Install the training dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install --upgrade pip
+
+pip install torch torchvision ultralytics numpy opencv-python matplotlib Pillow
 ```
 
-## Requirements
-
-Main dependencies:
-
-- Python 3.10+
-- PyTorch
-- Torchvision
-- OpenCV
-- Streamlit
-- Matplotlib
-- Pillow
-- Ultralytics
-
-## Run the Project
-
-### Launch the Streamlit app
+Verify the Ultralytics installation:
 
 ```bash
-streamlit run app.py
+yolo checks
 ```
 
-### Run YOLOv8 inference on a single image
+Verify PyTorch and CUDA availability:
 
 ```bash
-python inference_yolov8.py path/to/image.jpg
+python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA:', torch.cuda.is_available())"
 ```
 
-### Run YOLOv3 inference
+A CUDA-enabled PyTorch installation and compatible NVIDIA drivers are required for GPU training.
+
+## 6. Training
+
+The repository includes:
+
+```text
+train_yolov8.py
+```
+
+Run the training script:
 
 ```bash
-python inference.py path/to/image.jpg
+python train_yolov8.py
 ```
 
-### Validate the YOLOv8 model
+The script should use the project's dataset configuration and selected YOLOv8 architecture.
+
+Before training, verify the following in the script:
+
+- Dataset YAML path.
+- Initial model checkpoint.
+- Number of epochs.
+- Image size.
+- Batch size.
+- Optimizer.
+- Learning rate.
+- Device selection.
+- Output directory.
+
+Do not assume these settings from this document; the actual values are defined by the training script.
+
+### Example Ultralytics Training
+
+For a standalone training experiment, the following is a generic YOLOv8 example:
+
+```python
+from ultralytics import YOLO
+
+model = YOLO("yolov8n.pt")
+
+model.train(
+    data="pothole_dataset.yaml",
+    epochs=100,
+    imgsz=640,
+    batch=16,
+    device=0
+)
+```
+
+These are example hyperparameters, not a claim about the settings used to produce the project's existing checkpoint.
+
+For CPU training, use:
+
+```python
+device="cpu"
+```
+
+GPU training is recommended for faster experimentation.
+
+## 7. Training Outputs
+
+Ultralytics typically creates a run directory containing training artifacts.
+
+Example:
+
+```text
+runs/
+└── detect/
+    └── train/
+        ├── weights/
+        │   ├── best.pt
+        │   └── last.pt
+        │
+        ├── results.csv
+        ├── results.png
+        ├── confusion_matrix.png
+        ├── PR_curve.png
+        ├── F1_curve.png
+        ├── P_curve.png
+        └── R_curve.png
+```
+
+The exact output directory depends on the training configuration.
+
+### Checkpoint Information
+
+| File | Purpose |
+|---|---|
+| `best.pt` | Checkpoint selected as best during validation |
+| `last.pt` | Checkpoint from the final training epoch |
+| `results.csv` | Epoch-wise training and validation metrics |
+| `results.png` | Training metric visualizations |
+| `confusion_matrix.png` | Classification error analysis |
+| `PR_curve.png` | Precision-recall analysis |
+
+## 8. Model Validation
+
+After training, validate the checkpoint on the validation or test dataset.
+
+Example:
+
+```python
+from ultralytics import YOLO
+
+model = YOLO("runs/detect/train/weights/best.pt")
+
+metrics = model.val(
+    data="pothole_dataset.yaml"
+)
+
+print(metrics)
+```
+
+Validation helps assess how well the model performs on data that was not used to update its weights.
+
+## 9. Evaluation Metrics
+
+The following metrics are useful when evaluating an object detection model.
+
+| Metric | Description |
+|---|---|
+| Precision | Fraction of predicted potholes that are correct |
+| Recall | Fraction of actual potholes detected |
+| mAP@50 | Mean average precision at IoU 0.50 |
+| mAP@50-95 | Mean average precision averaged over IoU thresholds |
+| F1-score | Harmonic mean of precision and recall |
+
+### Precision
+
+Precision measures how many predicted potholes are correct.
+
+```text
+Precision = TP / (TP + FP)
+```
+
+### Recall
+
+Recall measures how many actual potholes were detected.
+
+```text
+Recall = TP / (TP + FN)
+```
+
+### F1-score
+
+```text
+F1 = 2 * Precision * Recall / (Precision + Recall)
+```
+
+Where:
+
+- TP = True Positives
+- FP = False Positives
+- FN = False Negatives
+
+Report actual measured values from the validation output. Do not use training-set performance as a substitute for test-set performance.
+
+## 10. Inference Testing
+
+The repository includes:
+
+```text
+inference_yolov8.py
+```
+
+Use this script to test the trained model on sample images.
 
 ```bash
-python train_yolov8.py --validate-only
+python inference_yolov8.py
 ```
 
-### Run the YOLOv3 evaluation pipeline
+The exact arguments and input handling depend on the implementation in that script.
 
-```bash
-python evaluate.py
-```
+You should test images containing:
 
-## Web App Highlights
+- Clear potholes.
+- Multiple potholes.
+- Small potholes.
+- Different road surfaces.
+- Shadows and reflections.
+- Normal roads without potholes.
 
-The Streamlit interface supports:
-
-- YOLOv8 and YOLOv3 model selection
-- Image upload and pothole detection
-- Detection summaries and confidence reporting
-- Grad-CAM visualization for the YOLOv3 path
-- Project explanation content for presentation or interview use
-
-YOLOv8 is the recommended inference option in the app.
-
-## Datasets and Weights Included
-
-This repository currently includes:
-
-- The YOLO-format dataset in `dataset_yolo/`
-- The original pothole dataset in `dataset-pothole-main/`
-- Trained YOLOv3 weight files
-- Fine-tuned YOLOv8 weight files
-- Training and validation outputs under `runs/`
-- Fresh validation outputs under `evaluation_metrics/`
-
-## Notes
-
-- No retraining was required for the latest deployment cleanup.
-- The latest cleaned detections are already saved in `evaluation_metrics/`.
-- The evaluation metrics listed above come from the current saved YOLOv8 model in this repository.
-
+This helps identify false positives and false negatives.
