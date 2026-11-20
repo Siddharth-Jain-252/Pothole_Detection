@@ -56,6 +56,7 @@ The detection engine uses Ultralytics YOLOv8 and the project's trained checkpoin
 
 PostgreSQL with PostGIS is intended for storing geospatial pothole reports and performing location-based queries.
 
+
 ### Frontend
 
 The frontend is designed around React and Tailwind CSS, providing image upload, detection visualization, geospatial exploration, and reporting interfaces. If maintained separately, configure its API base URL to point to the deployed backend.
