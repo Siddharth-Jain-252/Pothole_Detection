@@ -1,0 +1,22 @@
+{
+  "weights": "C:\\Users\\Yug\\Desktop\\poth_hole_detection\\yolov8_pothole_best.pt",
+  "dataset": "C:\\Users\\Yug\\Desktop\\poth_hole_detection\\pothole_dataset.yaml",
+  "precision": 0.7308386948762104,
+  "recall": 0.6998053975963693,
+  "mAP50": 0.7326299347793042,
+  "mAP50-95": 0.35767694572416586,
+  "fitness": 0.35767694572416586,
+  "deployment_settings": {
+    "conf": 0.44,
+    "post_filter_conf": 0.45,
+    "iou": 0.55,
+    "agnostic_nms": true,
+    "max_det_raw": 8,
+    "max_det_final": 5,
+    "min_area": 800,
+    "aspect_ratio_range": [
+      0.3,
+      3.0
+    ]
+  }
+}

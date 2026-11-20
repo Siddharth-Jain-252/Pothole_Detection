@@ -1,0 +1,21 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: roadsight-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: roadsight
+      POSTGRES_USER: roadsight
+      POSTGRES_PASSWORD: roadsight_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - roadsight_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roadsight -d roadsight"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  roadsight_pgdata:

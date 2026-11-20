@@ -1,0 +1,13 @@
+# Pothole Detection — YOLOv8 Dataset Configuration
+# Used for fine-tuning Ultralytics YOLOv8 on pothole dataset
+
+path: dataset_yolo
+train: images/train
+val: images/val
+
+# Number of classes
+nc: 1
+
+# Class names
+names:
+  0: pothole

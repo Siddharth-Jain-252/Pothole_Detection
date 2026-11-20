@@ -1,0 +1,72 @@
+
+# =====================================
+# Python cache
+# =====================================
+__pycache__/
+*.py[cod]
+*.pyo
+
+# =====================================
+# Virtual environments
+# =====================================
+venv/
+backend/venv/
+.venv/
+backend/.venv/
+env/
+
+# =====================================
+# Environment variables and secrets
+# =====================================
+.env
+.env.*
+!.env.example
+!backend/.env.example
+
+# =====================================
+# YOLO training and inference outputs
+# =====================================
+runs/
+results/
+result_pothole/
+
+# =====================================
+# Evaluation-generated files
+# =====================================
+*.log
+*.tmp
+
+# =====================================
+# Python testing and cache
+# =====================================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# =====================================
+# IDE and editor
+# =====================================
+.vscode/
+.idea/
+*.swp
+
+# =====================================
+# OS generated files
+# =====================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =====================================
+# Jupyter
+# =====================================
+.ipynb_checkpoints/
+
+# =====================================
+# Temporary files
+# =====================================
+temp/
+tmp/
+*.bak
